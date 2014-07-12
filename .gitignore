@@ -4,3 +4,4 @@ node_modules
 *.bat
 *.iml
 bak
+config.js
