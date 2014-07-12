@@ -13,7 +13,7 @@ You want to access to you gadget (like http://tessel.io who have own web server)
 
 ### Steps
 
-#### Create config
+#### Create config (used for client and server scripts)
 
 Please copy `config.default.js` to `config.js` and modify to you needs:
 
@@ -46,3 +46,5 @@ module.exports = {
 #### Try it
 
 For http-server - browse to http://1.2.3.4:8080/ and you will see page from you home http-server http://192.168.0.201:8000
+
+*Note:* any protocol supported, not only http. This scripts only traverse data you send to socket.

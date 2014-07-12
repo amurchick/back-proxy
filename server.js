@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 var net = require('net');
+var conf = require('./config.js');
 
 var proxy;
 var tasks = {};
@@ -15,7 +16,7 @@ var server = net.createServer(function(client) {
 		taskCnt = 1;
 
 	var taskId = taskCnt++;
-	console.log('New http-request #', taskId);
+	console.log('New user-request #', taskId);
 	tasks[taskId] = client;
 
 	client.on('data', function (data) {
@@ -26,22 +27,22 @@ var server = net.createServer(function(client) {
 	});
 
 	client.on('end', function () {
-		console.log('http-request end #', taskId);
+		console.log('user-request end #', taskId);
 		delete tasks[taskId];
 	});
 
 	client.on('error', function(error) {
-		console.log('http-server #' + taskId + ' Error: ' + error.toString());
+		console.log('user-request #' + taskId + ' Error: ' + error.toString());
 		delete tasks[taskId];
 	});
 });
 
 server.on('error', function(error) {
-	console.log('http-server error: ' + error.toString());
+	console.log('user-request error: ' + error.toString());
 });
 
-server.listen(8080, function() {
-    console.log('http-server listening on port 8080');
+server.listen(conf.public.port, conf.public.host, function() {
+    console.log('user-request listening on %s:%s', conf.public.host, conf.public.port);
 });
 
 
@@ -51,7 +52,6 @@ var proxyListener = net.createServer(function(client) {
 	proxy = client;
 
 	var buf = new Buffer(0);
-	var first;
 	proxy.on('data', function (data) {
 		buf = Buffer.concat([buf, data]);
 
@@ -59,7 +59,7 @@ var proxyListener = net.createServer(function(client) {
 			var taskId = buf.readInt16BE(0);
 			var size = buf.readInt32BE(2);
 
-			// Если пришо сообщение о том, что закрыто соединение
+			// Proxy informs - shared server close connection
 			if (!size) {
 
 				if (tasks[taskId]) {
@@ -71,15 +71,11 @@ var proxyListener = net.createServer(function(client) {
 
 			} else {
 
-				// Если есть данные для отправки в браузер
+				// Check completed frames in buffer
 				if (6 + size <= buf.length) {
 					console.log('Data from proxy for request #' + taskId + ', len=' + size);
 					if (tasks[taskId])
 						tasks[taskId].write(buf.slice(6, size+6));
-					if (!first) {
-						console.log(buf.slice(6, size+6).toString());
-						first = true;
-					}
 
 					buf = buf.slice(6 + size);
 				} else {
@@ -118,6 +114,6 @@ proxyListener.on('error', function(error) {
 	proxy = undefined;
 });
 
-proxyListener.listen(8888, function() {
-	console.log('proxy-listener server listening on port 8888');
+proxyListener.listen(conf.upstream.port, conf.upstream.host, function() {
+	console.log('proxy-listener server listening on %s:%s', conf.upstream.host, conf.upstream.port);
 });

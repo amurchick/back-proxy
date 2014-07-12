@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 var net = require('net');
+var conf = require('./config.js');
 
 var proxy;
 var tasks = {};
@@ -8,9 +9,8 @@ function connect() {
 	if (proxy)
 		proxy.destroy();
 
-	console.log('Proxy connecting to server...');
-	proxy = net.connect(8888, 'localhost', function () {
-		console.log('Proxy connected to server');
+	proxy = net.connect(conf.upstream.port, conf.upstream.host, function () {
+		console.log('Proxy connected to %s:%s', conf.upstream.host, conf.upstream.port);
 	});
 
 	proxy.on('error', function(error) {
@@ -29,10 +29,10 @@ function connect() {
 		console.log('New data from upsteam #', taskId);
 		data = data.slice(2);
 
-		// Если не было такой задачи - создать коненкшен
+		// If no such TaskId connection - create it!
 		if (!tasks[taskId]) {
-			var httpConn = tasks[taskId] = net.connect(8000, 'localhost', function () {
-				console.log('Connected to target #', taskId);
+			var httpConn = tasks[taskId] = net.connect(conf.shared.port, conf.shared.host, function () {
+				console.log('Connected to target #d %s:%s', taskId, conf.shared.host, conf.shared.port);
 				httpConn.write(data);
 			});
 
