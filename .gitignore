@@ -1,0 +1,6 @@
+.node-inspectorrc
+.idea
+node_modules
+*.bat
+*.iml
+bak
