@@ -15,7 +15,7 @@ You want to access to you gadget (like http://tessel.io who have own web server)
 
 #### Create config
 
-Please copy `config.default.js` to `config.js` and modify to you needs.
+Please copy `config.default.js` to `config.js` and modify to you needs:
 
 ```javascript
 module.exports = {
@@ -40,3 +40,9 @@ module.exports = {
 
 };
 ```
+
+#### Run `node server.js` on server `1.2.3.4`
+#### Run `node client.js` on you home `PC`
+#### Try it
+
+For http-server - browse to http://1.2.3.4:8080/ and you will see page from you home http-server http://192.168.0.201:8000
