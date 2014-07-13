@@ -1,11 +1,14 @@
-back-proxy
-==========
+# back-proxy
 
 Reversing proxy to you gadgets or home http-server behind NAT with dynamic WAN ip.
-Needs to "servers": one in Internet for you connects for proxing and second in you home for serve proxy requests.
+Needs two "servers": one in Internet for you connects for proxing and second in you home for serve proxy requests.
 
 # How its works
 ![Basic diagram](https://raw.githubusercontent.com/amurchick/back-proxy/master/BasicDiagram.png)
+
+After starting, `client.js` make permanent `pipe` to `server.js`. 
+On new connection from any device to `public` - `server.js` send data to `pipe` and `client.js` opens same connection to `shared` (and so one on next connections).
+When connection dropped by any side - on `server.js` or `client.js` - other end drop connection to.
 
 ## Scenario
 
