@@ -13,10 +13,10 @@
   "keywords": [
     "reverse",
     "proxy",
-	"nat",
-	"dynamic",
-	"WAN",
-	"ip"
+    "nat",
+    "dynamic",
+    "WAN",
+    "ip"
   ],
   "author": "Aleksandr Murin",
   "license": "Freeware",
