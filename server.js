@@ -20,15 +20,26 @@ var server = net.createServer(function(client) {
 	tasks[taskId] = client;
 
 	client.on('data', function (data) {
-		var buf = new Buffer(2);
+		if (!proxy) {
+			client.end('No proxy connected');
+			return;
+		}
+		var buf = new Buffer(6);
 		buf.writeUInt16BE(taskId, 0);
+		buf.writeUInt32BE(data.length, 2);
 		buf = Buffer.concat([buf, data]);
 		proxy.write(buf);
 	});
 
 	client.on('end', function () {
 		console.log('user-request end #', taskId);
-		delete tasks[taskId];
+		if (proxy && tasks[taskId]) {
+			var buf = new Buffer(6);
+			buf.writeUInt16BE(taskId, 0);
+			buf.writeUInt32BE(0, 2);
+			proxy.write(buf);
+			delete tasks[taskId];
+		}
 	});
 
 	client.on('error', function(error) {
@@ -47,7 +58,6 @@ server.listen(conf.public.port, conf.public.host, function() {
 
 
 var proxyListener = net.createServer(function(client) {
-	console.log('New proxy connect');
 
 	proxy = client;
 
@@ -73,13 +83,13 @@ var proxyListener = net.createServer(function(client) {
 
 				// Check completed frames in buffer
 				if (6 + size <= buf.length) {
-					console.log('Data from proxy for request #' + taskId + ', len=' + size);
+					//console.log('Data from proxy for request #' + taskId + ', len=' + size);
 					if (tasks[taskId])
 						tasks[taskId].write(buf.slice(6, size+6));
 
 					buf = buf.slice(6 + size);
 				} else {
-					console.log('There are some partial data for request #' + taskId + ', len=' + (buf.length - 6) + ', needs=' + size);
+					//console.log('There are some partial data for request #' + taskId + ', len=' + (buf.length - 6) + ', needs=' + size);
 					break;
 				}
 			}
@@ -102,6 +112,8 @@ var proxyListener = net.createServer(function(client) {
 		tasks = {};
 		proxy = undefined;
 	});
+
+	console.log('Proxy connected');
 
 });
 
