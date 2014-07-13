@@ -1,6 +1,6 @@
 {
   "name": "back-proxy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Reversing proxy to you gadgets or home http-server behind NAT or with dynamic WAN ip. Needs two \"servers\": one in Internet for you connects for proxing and second in you home for serve proxy requests.",
   "main": "server.js",
   "scripts": {
@@ -12,7 +12,11 @@
   },
   "keywords": [
     "reverse",
-    "proxy"
+    "proxy",
+	"nat",
+	"dynamic",
+	"WAN",
+	"ip"
   ],
   "author": "Aleksandr Murin",
   "license": "Freeware",
