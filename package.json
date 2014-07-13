@@ -1,7 +1,7 @@
 {
   "name": "back-proxy",
-  "version": "0.1.1",
-  "description": "Reversing proxy to you gadgets or home http-server behind NAT or with dynamic WAN ip. Needs two \"servers\": one in Internet for you connects for proxing and second in you home for serve proxy requests.",
+  "version": "0.1.2",
+  "description": "Reversing proxy to you gadgets or home http-server behind NAT with dynamic WAN ip. Needs two \"servers\": one in Internet for you connects for proxing and second in you home for serve proxy requests.",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
