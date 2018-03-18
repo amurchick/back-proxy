@@ -1,131 +1,161 @@
 #!/usr/bin/env node
-var net = require('net');
-var conf = require('./config.js');
+let net = require('net');
+let conf = require('./config.js');
 
-var proxy;
-var tasks = {};
-var taskCnt = 1;
+let proxy;
+let tasks = {};
+let taskCnt = 1;
 
-var server = net.createServer(function(client) {
-	if (!proxy) {
-		client.end('No proxy connected');
-		return;
-	}
+let server = net.createServer(function (client) {
 
-	if (taskCnt > 10240)
-		taskCnt = 1;
+  if (!proxy) {
 
-	var taskId = taskCnt++;
-	console.log('New user-request #', taskId);
-	tasks[taskId] = client;
+    client.end('No proxy connected');
+    return;
+  }
 
-	client.on('data', function (data) {
-		if (!proxy) {
-			client.end('No proxy connected');
-			return;
-		}
-		var buf = new Buffer(6);
-		buf.writeUInt16BE(taskId, 0);
-		buf.writeUInt32BE(data.length, 2);
-		buf = Buffer.concat([buf, data]);
-		proxy.write(buf);
-	});
+  if (taskCnt > 10240) {
 
-	client.on('end', function () {
-		console.log('user-request end #', taskId);
-		if (proxy && tasks[taskId]) {
-			var buf = new Buffer(6);
-			buf.writeUInt16BE(taskId, 0);
-			buf.writeUInt32BE(0, 2);
-			proxy.write(buf);
-			delete tasks[taskId];
-		}
-	});
+    taskCnt = 1;
+  }
 
-	client.on('error', function(error) {
-		console.log('user-request #' + taskId + ' Error: ' + error.toString());
-		delete tasks[taskId];
-	});
+  let taskId = taskCnt++;
+  console.log('New user-request #', taskId);
+  tasks[taskId] = client;
+
+  client.on('data', function (data) {
+
+    if (!proxy) {
+
+      client.end('No proxy connected');
+      return;
+    }
+
+    let buf = new Buffer(6);
+    buf.writeUInt16BE(taskId, 0);
+    buf.writeUInt32BE(data.length, 2);
+    buf = Buffer.concat([buf, data]);
+    proxy.write(buf);
+  });
+
+  client.on('end', function () {
+
+    console.log('user-request end #', taskId);
+
+    if (proxy && tasks[taskId]) {
+
+      let buf = new Buffer(6);
+      buf.writeUInt16BE(taskId, 0);
+      buf.writeUInt32BE(0, 2);
+      proxy.write(buf);
+      delete tasks[taskId];
+    }
+  });
+
+  client.on('error', function (error) {
+
+    console.log('user-request #' + taskId + ' Error: ' + error.toString());
+    delete tasks[taskId];
+  });
 });
 
-server.on('error', function(error) {
-	console.log('user-request error: ' + error.toString());
+server.on('error', function (error) {
+
+  console.log('user-request error: ' + error.toString());
 });
 
-server.listen(conf.public.port, conf.public.host, function() {
-    console.log('user-request listening on %s:%s', conf.public.host, conf.public.port);
+server.listen(conf.public.port, conf.public.host, function () {
+
+  console.log('user-request listening on %s:%s', conf.public.host, conf.public.port);
 });
 
 
-var proxyListener = net.createServer(function(client) {
+let proxyListener = net.createServer(function (client) {
 
-	proxy = client;
+  proxy = client;
 
-	var buf = new Buffer(0);
-	proxy.on('data', function (data) {
-		buf = Buffer.concat([buf, data]);
+  let buf = new Buffer(0);
+  proxy.on('data', function (data) {
 
-		while (buf.length >= 6) {
-			var taskId = buf.readInt16BE(0);
-			var size = buf.readInt32BE(2);
+    buf = Buffer.concat([buf, data]);
 
-			// Proxy informs - shared server close connection
-			if (!size) {
+    while (buf.length >= 6) {
 
-				if (tasks[taskId]) {
-					console.log('Closing request #' + taskId);
-					tasks[taskId].end();
-					delete tasks[taskId];
-				}
-				buf = buf.slice(6);
+      let taskId = buf.readInt16BE(0);
+      let size = buf.readInt32BE(2);
 
-			} else {
+      // Proxy informs - shared server close connection
+      if (!size) {
 
-				// Check completed frames in buffer
-				if (6 + size <= buf.length) {
-					//console.log('Data from proxy for request #' + taskId + ', len=' + size);
-					if (tasks[taskId])
-						tasks[taskId].write(buf.slice(6, size+6));
+        if (tasks[taskId]) {
+          console.log('Closing request #' + taskId);
+          tasks[taskId].end();
+          delete tasks[taskId];
+        }
+        buf = buf.slice(6);
 
-					buf = buf.slice(6 + size);
-				} else {
-					//console.log('There are some partial data for request #' + taskId + ', len=' + (buf.length - 6) + ', needs=' + size);
-					break;
-				}
-			}
-		}
-	});
+      }
+      else {
 
-	proxy.on('end', function () {
-		Object.keys(tasks).forEach(function (task) {
-			tasks[task].end('Proxy disconnected');
-		});
-		tasks = {};
-		proxy = undefined;
-	});
+        // Check completed frames in buffer
+        if (6 + size <= buf.length) {
 
-	proxy.on('error', function(error) {
-		console.log('proxy-listener client error: ' + error.toString());
-		Object.keys(tasks).forEach(function (task) {
-			tasks[task].end('Proxy disconnected');
-		});
-		tasks = {};
-		proxy = undefined;
-	});
+          //console.log('Data from proxy for request #' + taskId + ', len=' + size);
+          if (tasks[taskId]) {
 
-	console.log('Proxy connected');
+            tasks[taskId].write(buf.slice(6, size + 6));
+          }
+
+          buf = buf.slice(6 + size);
+        }
+        else {
+
+          //console.log('There are some partial data for request #' + taskId + ', len=' + (buf.length - 6) + ', needs=' + size);
+          break;
+        }
+      }
+    }
+  });
+
+  proxy.on('end', function () {
+
+    Object.keys(tasks).forEach(function (task) {
+
+      tasks[task].end('Proxy disconnected');
+    });
+
+    tasks = {};
+    proxy = undefined;
+  });
+
+  proxy.on('error', function (error) {
+
+    console.log('proxy-listener client error: ' + error.toString());
+    Object.keys(tasks).forEach(function (task) {
+
+      tasks[task].end('Proxy disconnected');
+    });
+
+    tasks = {};
+    proxy = undefined;
+  });
+
+  console.log('Proxy connected');
 
 });
 
-proxyListener.on('error', function(error) {
-	console.log('proxy-listener server error: ' + error.toString());
-	Object.keys(tasks).forEach(function (task) {
-		tasks[task].end('Proxy disconnected');
-	});
-	tasks = {};
-	proxy = undefined;
+proxyListener.on('error', function (error) {
+
+  console.log('proxy-listener server error: ' + error.toString());
+  Object.keys(tasks).forEach(function (task) {
+
+    tasks[task].end('Proxy disconnected');
+  });
+  tasks = {};
+  proxy = undefined;
 });
 
-proxyListener.listen(conf.upstream.port, conf.upstream.host, function() {
-	console.log('proxy-listener server listening on %s:%s', conf.upstream.host, conf.upstream.port);
+proxyListener.listen(conf.upstream.port, conf.upstream.host, function () {
+
+  console.log('proxy-listener server listening on %s:%s', conf.upstream.host, conf.upstream.port);
 });
