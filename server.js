@@ -1,16 +1,29 @@
 #!/usr/bin/env node
 let net = require('net');
-let utils = require('./utils.js');
-let conf = require('./server-config.js');
+let conf = require('./config.js');
 
 let proxy;
 let tasks = {};
 let taskCnt = 1;
-let proxies = {};
 
-const createUpstreamListener = (addr) => {
+let server = net.createServer(function (client) {
 
-  let server = net.createServer(function (client) {
+  if (!proxy) {
+
+    client.end('No proxy connected');
+    return;
+  }
+
+  if (taskCnt > 10240) {
+
+    taskCnt = 1;
+  }
+
+  let taskId = taskCnt++;
+  console.log('New user-request #', taskId);
+  tasks[taskId] = client;
+
+  client.on('data', function (data) {
 
     if (!proxy) {
 
@@ -18,63 +31,43 @@ const createUpstreamListener = (addr) => {
       return;
     }
 
-    if (taskCnt > 10240) {
+    let buf = Buffer.alloc(6);
+    buf.writeUInt16BE(taskId, 0);
+    buf.writeUInt32BE(data.length, 2);
+    buf = Buffer.concat([buf, data]);
+    proxy.write(buf);
+  });
 
-      taskCnt = 1;
-    }
+  client.on('end', function () {
 
-    let taskId = taskCnt++;
-    console.log('New user-request #', taskId);
-    tasks[taskId] = client;
+    console.log('user-request end #', taskId);
 
-    client.on('data', function (data) {
-
-      if (!proxy) {
-
-        client.end('No proxy connected');
-        return;
-      }
+    if (proxy && tasks[taskId]) {
 
       let buf = Buffer.alloc(6);
       buf.writeUInt16BE(taskId, 0);
-      buf.writeUInt32BE(data.length, 2);
-      buf = Buffer.concat([buf, data]);
+      buf.writeUInt32BE(0, 2);
       proxy.write(buf);
-    });
-
-    client.on('end', function () {
-
-      console.log('user-request end #', taskId);
-
-      if (proxy && tasks[taskId]) {
-
-        let buf = Buffer.alloc(6);
-        buf.writeUInt16BE(taskId, 0);
-        buf.writeUInt32BE(0, 2);
-        proxy.write(buf);
-        delete tasks[taskId];
-      }
-    });
-
-    client.on('error', function (error) {
-
-      console.log('user-request #' + taskId + ' Error: ' + error.toString());
       delete tasks[taskId];
-    });
+    }
   });
 
-  server.on('error', function (error) {
+  client.on('error', function (error) {
 
-    console.log('user-request error: ' + error.toString());
+    console.log('user-request #' + taskId + ' Error: ' + error.toString());
+    delete tasks[taskId];
   });
+});
 
-  server.listen(...utils.getHostPort(addr), function () {
+server.on('error', function (error) {
 
-    console.log('user-request listening on %s:%s', conf.public.host, conf.public.port);
-  });
+  console.log('user-request error: ' + error.toString());
+});
 
-  return server;
-};
+server.listen(conf.public.port, conf.public.host, function () {
+
+  console.log('user-request listening on %s:%s', conf.public.host, conf.public.port);
+});
 
 let proxyListener = net.createServer(function (client) {
 
@@ -165,10 +158,3 @@ proxyListener.listen(conf.upstream.port, conf.upstream.host, function () {
 
   console.log('proxy-listener server listening on %s:%s', conf.upstream.host, conf.upstream.port);
 });
-
-let server = createUpstreamListener(conf.upstream);
-for (let map of conf.maps) {
-
-  map.server = utils.getHostPort(map.server, conf.upstream);
-  map.client = utils.getHostPort(map.client);
-}
