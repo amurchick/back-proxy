@@ -17,10 +17,10 @@ let createConnection = function (buf, taskId) {
 
     console.log('Proxy-to-site connection #' + taskId + ' Error: ' + error.toString());
 
-    //tcpConn.end();
+    // tcpConn.end();
     if (tasks[taskId]) {
 
-      let buf = new Buffer(6);
+      let buf = Buffer.alloc(6);
       buf.writeUInt16BE(taskId, 0);
       buf.writeUInt32BE(0, 2);
       proxy.write(buf);
@@ -32,10 +32,10 @@ let createConnection = function (buf, taskId) {
 
     console.log('Connection closed target #' + taskId);
 
-    //tcpConn.end(buf);
+    // tcpConn.end(buf);
     if (tasks[taskId]) {
 
-      let buf = new Buffer(6);
+      let buf = Buffer.alloc(6);
       buf.writeUInt16BE(taskId, 0);
       buf.writeUInt32BE(0, 2);
       proxy.write(buf);
@@ -46,7 +46,7 @@ let createConnection = function (buf, taskId) {
   tcpConn.on('data', function (data) {
 
     console.log('Send data back for target #' + taskId + ', len=' + data.length);
-    let buf = new Buffer(6);
+    let buf = Buffer.alloc(6);
     buf.writeUInt16BE(taskId, 0);
     buf.writeUInt32BE(data.length, 2);
     buf = Buffer.concat([buf, data]);
@@ -68,9 +68,11 @@ function connect() {
 
   proxy.on('error', function (error) {
 
-    console.log("proxy upstream Connection Error: " + error.toString());
-    //		if (error.errno === 'ECONNRESET')
-    //			setTimeout(connect, 1000);
+    console.log('proxy upstream Connection Error: ' + error.toString());
+    // if (error.errno === 'ECONNRESET') {
+
+    //   setTimeout(connect, 1000);
+    // }
   });
 
   proxy.on('close', function () {
@@ -84,7 +86,7 @@ function connect() {
     setTimeout(connect, 1000);
   });
 
-  let buf = new Buffer(0);
+  let buf = Buffer.alloc(0);
   proxy.on('data', function (data) {
 
     buf = Buffer.concat([buf, data]);
@@ -105,7 +107,6 @@ function connect() {
         }
 
         buf = buf.slice(6);
-
       }
       else {
 
@@ -134,7 +135,7 @@ function connect() {
         }
         else {
 
-          //console.log('There are some partial data for request #' + taskId + ', len=' + (buf.length - 6) + ', needs=' + size);
+          // console.log('There are some partial data for request #' + taskId + ', len=' + (buf.length - 6) + ', needs=' + size);
           break;
         }
       }
