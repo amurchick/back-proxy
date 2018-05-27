@@ -6,4 +6,3 @@ node_modules
 bak
 config.js
 test.js
-*.code-workspace

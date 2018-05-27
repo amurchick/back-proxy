@@ -69,8 +69,10 @@ function connect() {
   proxy.on('error', function (error) {
 
     console.log('proxy upstream Connection Error: ' + error.toString());
-    // if (error.errno === 'ECONNRESET')
+    // if (error.errno === 'ECONNRESET') {
+
     //   setTimeout(connect, 1000);
+    // }
   });
 
   proxy.on('close', function () {
@@ -105,7 +107,6 @@ function connect() {
         }
 
         buf = buf.slice(6);
-
       }
       else {
 
